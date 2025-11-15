@@ -1,0 +1,45 @@
+name: Issue Comment Bot
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  add-comment:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: issue } = await github.rest.issues.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number
+          });
+
+          const { data: labels } = await github.rest.issues.listLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number
+          });
+
+          const labelNames = labels.map(label => label.name);
+          const repoOwner = process.env.REPO_OWNER;
+
+          let commentBody = '';
+
+          if (labelNames.includes('bug')) {
+            commentBody = `Thank you. We will fix it. Best regards, ${repoOwner}.`;
+          } else if (labelNames.includes('feature')) {
+            commentBody = `Thank you, we will consider to include this feature. Best regards, ${repoOwner}.`;
+          } else if (labelNames.includes('discussion')) {
+            commentBody = `Happy to discuss this topic with you. Best regards, ${repoOwner}.`;
+          }
+
+          if (commentBody) {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
+          }
